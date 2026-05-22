@@ -3,13 +3,17 @@ import { Chessboard } from 'react-chessboard';
 import type { SquareHandlerArgs } from 'react-chessboard';
 import { isPlayerPiece } from '../chess/boardInteraction';
 import { getLegalTargetSquares, isLegalMove } from '../chess/moveValidation';
-import { buildEndgameCustomPieces } from '../chess/customPieces';
+import { buildEndgameCustomPiecesFromStates } from '../chess/customPieces';
+import { getKingVisualStates } from '../chess/kingVisuals';
+import { BOARD_MOVE_ANIMATION_MS } from '../config/boardAnimation';
 import { MOVE_DOT_MARKER } from '../config/boardMarkers';
 import { useLanguage } from '../i18n/useLanguage';
 import type { PlayerSide } from '../types/PlayerSide';
 
 export interface ChessBoardViewProps {
   fen: string;
+  /** FEN per a imatges de rei (escac/mat); es retarden per no tallar l'animació de moviment. */
+  kingVisualFen: string;
   playerSide: PlayerSide;
   boardLocked?: boolean;
   onPlayerMove?: (from: string, to: string) => void;
@@ -26,6 +30,7 @@ function clearSelection(
 
 export function ChessBoardView({
   fen,
+  kingVisualFen,
   playerSide,
   boardLocked = false,
   onPlayerMove,
@@ -154,16 +159,28 @@ export function ChessBoardView({
     [legalTargetSet],
   );
 
-  const pieces = useMemo(() => buildEndgameCustomPieces(fen), [fen]);
+  const kingStates = useMemo(
+    () => getKingVisualStates(kingVisualFen),
+    [kingVisualFen],
+  );
+
+  const pieces = useMemo(
+    () =>
+      buildEndgameCustomPiecesFromStates(kingStates.white, kingStates.black),
+    [kingStates.white, kingStates.black],
+  );
 
   const options = useMemo(
     () => ({
+      id: 'fabriales-endgame-board',
       position: fen,
       pieces,
       boardOrientation,
       allowDragging: canInteract,
       allowDragOffBoard: false,
       allowDrawingArrows: false,
+      showAnimations: true,
+      animationDurationInMs: BOARD_MOVE_ANIMATION_MS,
       showNotation: true,
       darkSquareStyle: { backgroundColor: '#b58863' },
       lightSquareStyle: { backgroundColor: '#f0d9b5' },
@@ -187,7 +204,10 @@ export function ChessBoardView({
   );
 
   return (
-    <div className="chess-board-wrapper" aria-label={t('board.aria')}>
+    <div
+      className={`chess-board-wrapper${boardLocked ? ' chess-board-wrapper--locked' : ''}`}
+      aria-label={t('board.aria')}
+    >
       <Chessboard options={options} />
     </div>
   );

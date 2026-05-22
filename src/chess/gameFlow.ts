@@ -25,6 +25,9 @@ export interface FlowResult {
   snapshot: GameSnapshot;
 }
 
+/** Espera abans que la màquina respongui després d'una jugada del jugador (Prompt 31). */
+export const MACHINE_THINKING_DELAY_MS = 500;
+
 function runMachineTurn(
   fen: string,
   exercise: ExerciseType,
@@ -40,14 +43,13 @@ function runMachineTurn(
   return snapshotFromFen(machineFen);
 }
 
-/** Aplica el moviment del jugador i, si cal, la resposta de la màquina. */
-export function processPlayerMove({
+/** Només el moviment del jugador (sense resposta immediata de la màquina). */
+export function applyPlayerMoveOnly({
   fen,
   from,
   to,
-  exercise,
   playerSide,
-}: PlayerMoveInput): FlowResult | null {
+}: Omit<PlayerMoveInput, 'exercise'>): FlowResult | null {
   const game = createGame(fen);
 
   if (!isPlayerTurn(game, playerSide)) {
@@ -59,12 +61,44 @@ export function processPlayerMove({
     return null;
   }
 
-  let snapshot = snapshotFromFen(afterPlayerFen);
+  return { snapshot: snapshotFromFen(afterPlayerFen) };
+}
 
-  if (
-    snapshot.status === 'playing' &&
-    !isPlayerTurn(createGame(snapshot.fen), playerSide)
-  ) {
+/** Cal programar el torn de la màquina després de la jugada del jugador? */
+export function shouldScheduleMachineMove(
+  snapshot: GameSnapshot,
+  playerSide: PlayerSide,
+): boolean {
+  if (snapshot.status !== 'playing') {
+    return false;
+  }
+  return !isPlayerTurn(createGame(snapshot.fen), playerSide);
+}
+
+/** Executa el moviment de la màquina sobre el FEN actual. */
+export function applyMachineTurn(
+  fen: string,
+  exercise: ExerciseType,
+  playerSide: PlayerSide,
+): GameSnapshot {
+  return runMachineTurn(fen, exercise, playerSide);
+}
+
+/** Aplica el moviment del jugador i, si cal, la resposta de la màquina (sense delay). */
+export function processPlayerMove({
+  fen,
+  from,
+  to,
+  exercise,
+  playerSide,
+}: PlayerMoveInput): FlowResult | null {
+  const result = applyPlayerMoveOnly({ fen, from, to, playerSide });
+  if (!result) {
+    return null;
+  }
+
+  let snapshot = result.snapshot;
+  if (shouldScheduleMachineMove(snapshot, playerSide)) {
     snapshot = runMachineTurn(snapshot.fen, exercise, playerSide);
   }
 

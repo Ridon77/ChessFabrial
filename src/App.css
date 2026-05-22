@@ -257,6 +257,12 @@
   color: #6d4a00;
 }
 
+.game-status-alert--thinking {
+  background: #e8eef5;
+  color: #2a4a6d;
+  font-style: italic;
+}
+
 .game-status-alert--result {
   background: #ebe4d4;
   color: #3d3020;
@@ -306,10 +312,15 @@
 }
 
 .chess-board-wrapper {
+  position: relative;
   width: 100%;
   max-width: 811px;
   margin: 0 auto;
   aspect-ratio: 1;
+}
+
+.chess-board-wrapper--locked {
+  pointer-events: none;
 }
 
 .chess-square-inner {

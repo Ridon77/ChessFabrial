@@ -27,6 +27,7 @@ interface GameStatusProps {
   playerMoveCount: number;
   feedbackNotice?: FeedbackNotice;
   suppressResultAlert?: boolean;
+  isMachineThinking?: boolean;
   onNewPosition: () => void;
   onRestart: () => void;
 }
@@ -40,6 +41,7 @@ export function GameStatus({
   playerMoveCount,
   feedbackNotice = null,
   suppressResultAlert = false,
+  isMachineThinking = false,
   onNewPosition,
   onRestart,
 }: GameStatusProps) {
@@ -56,8 +58,9 @@ export function GameStatus({
         ? t('gameStatus.roleWhite')
         : t('gameStatus.roleBlack');
 
-  const turn =
-    status === 'playing' && fen
+  const turn = isMachineThinking
+    ? t('gameStatus.machineThinking')
+    : status === 'playing' && fen
       ? isMachineTurn(fen, playerSide)
         ? t('gameStatus.turnMachine')
         : t('gameStatus.turnPlayer')
@@ -148,7 +151,13 @@ export function GameStatus({
         <p className="game-status-alert game-status-alert--info">{feedback}</p>
       )}
 
-      {check && (
+      {isMachineThinking && (
+        <p className="game-status-alert game-status-alert--thinking">
+          {t('gameStatus.machineThinking')}
+        </p>
+      )}
+
+      {check && !isMachineThinking && (
         <p className="game-status-alert game-status-alert--check">{check}</p>
       )}
 

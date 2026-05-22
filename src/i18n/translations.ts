@@ -76,6 +76,7 @@ const TRANSLATIONS = {
     'gameStatus.idle': 'Selecciona un exercici i comença.',
     'gameStatus.turnMachine': 'Torn de la màquina.',
     'gameStatus.turnPlayer': 'Torn del jugador.',
+    'gameStatus.machineThinking': 'La màquina està pensant…',
     'gameStatus.checkOwn': 'El teu rei està en escac.',
     'gameStatus.checkBlack': 'El rei negre està en escac.',
     'gameStatus.winSpecial':
@@ -234,6 +235,7 @@ const TRANSLATIONS = {
     'gameStatus.idle': 'Selecciona un ejercicio y comienza.',
     'gameStatus.turnMachine': 'Turno de la máquina.',
     'gameStatus.turnPlayer': 'Turno del jugador.',
+    'gameStatus.machineThinking': 'La máquina está pensando…',
     'gameStatus.checkOwn': 'Tu rey está en jaque.',
     'gameStatus.checkBlack': 'El rey negro está en jaque.',
     'gameStatus.winSpecial':
@@ -392,6 +394,7 @@ const TRANSLATIONS = {
     'gameStatus.idle': 'Select an exercise and start.',
     'gameStatus.turnMachine': "Machine's turn.",
     'gameStatus.turnPlayer': "Player's turn.",
+    'gameStatus.machineThinking': 'The machine is thinking…',
     'gameStatus.checkOwn': 'Your king is in check.',
     'gameStatus.checkBlack': 'The black king is in check.',
     'gameStatus.winSpecial':

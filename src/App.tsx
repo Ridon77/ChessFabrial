@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   applyInitialMachineTurn,
+  applyMachineTurn,
+  applyPlayerMoveOnly,
   isBoardPlayable,
-  processPlayerMove,
+  MACHINE_THINKING_DELAY_MS,
+  shouldScheduleMachineMove,
 } from './chess/gameFlow';
-import { applyMove } from './chess/moveValidation';
+import { BOARD_MOVE_ANIMATION_MS } from './config/boardAnimation';
 import { DEFAULT_PLAYER_SIDE } from './config/featureFlags';
 import { snapshotFromFen } from './chess/gameState';
 import { resetExerciseSession } from './chess/resetExerciseSession';
@@ -64,12 +67,75 @@ function App() {
   const activeGameRef = useRef<ActiveGameRecord | null>(null);
   const gameRecordedRef = useRef(false);
   const modalShownForGameRef = useRef<number | null>(null);
+  const machineMoveTimeoutRef = useRef<number | null>(null);
+  const moveAnimationTimeoutRef = useRef<number | null>(null);
+  const kingVisualTimeoutRef = useRef<number | null>(null);
+
+  const [isMachineThinking, setIsMachineThinking] = useState(false);
+  const [isAnimatingMove, setIsAnimatingMove] = useState(false);
+  const [kingVisualFen, setKingVisualFen] = useState<string | null>(null);
+
+  const clearPendingMachineMove = useCallback(() => {
+    if (machineMoveTimeoutRef.current !== null) {
+      window.clearTimeout(machineMoveTimeoutRef.current);
+      machineMoveTimeoutRef.current = null;
+    }
+    setIsMachineThinking(false);
+  }, []);
+
+  const clearMoveAnimation = useCallback(() => {
+    if (moveAnimationTimeoutRef.current !== null) {
+      window.clearTimeout(moveAnimationTimeoutRef.current);
+      moveAnimationTimeoutRef.current = null;
+    }
+    if (kingVisualTimeoutRef.current !== null) {
+      window.clearTimeout(kingVisualTimeoutRef.current);
+      kingVisualTimeoutRef.current = null;
+    }
+    setIsAnimatingMove(false);
+  }, []);
+
+  const clearBoardTimers = useCallback(() => {
+    clearPendingMachineMove();
+    clearMoveAnimation();
+  }, [clearPendingMachineMove, clearMoveAnimation]);
+
+  const scheduleKingVisualUpdate = useCallback((targetFen: string) => {
+    if (kingVisualTimeoutRef.current !== null) {
+      window.clearTimeout(kingVisualTimeoutRef.current);
+    }
+    kingVisualTimeoutRef.current = window.setTimeout(() => {
+      kingVisualTimeoutRef.current = null;
+      setKingVisualFen(targetFen);
+    }, BOARD_MOVE_ANIMATION_MS);
+  }, []);
 
   const applySnapshot = useCallback((snapshot: GameSnapshot) => {
     setFen(snapshot.fen);
     setStatus(snapshot.status);
     setDrawReason(snapshot.drawReason);
   }, []);
+
+  const runAfterMoveAnimation = useCallback((afterAnimation: () => void) => {
+    if (moveAnimationTimeoutRef.current !== null) {
+      window.clearTimeout(moveAnimationTimeoutRef.current);
+    }
+    setIsAnimatingMove(true);
+    moveAnimationTimeoutRef.current = window.setTimeout(() => {
+      moveAnimationTimeoutRef.current = null;
+      setIsAnimatingMove(false);
+      afterAnimation();
+    }, BOARD_MOVE_ANIMATION_MS);
+  }, []);
+
+  const applySnapshotAnimated = useCallback(
+    (snapshot: GameSnapshot, afterAnimation?: () => void) => {
+      applySnapshot(snapshot);
+      scheduleKingVisualUpdate(snapshot.fen);
+      runAfterMoveAnimation(afterAnimation ?? (() => undefined));
+    },
+    [applySnapshot, runAfterMoveAnimation, scheduleKingVisualUpdate],
+  );
 
   const recordGame = useCallback((result: 'win' | 'draw' | 'loss' | 'aborted') => {
     const active = activeGameRef.current;
@@ -89,6 +155,14 @@ function App() {
     }
   }, [recordGame, status]);
 
+  useEffect(
+    () => () => {
+      clearPendingMachineMove();
+      clearMoveAnimation();
+    },
+    [clearPendingMachineMove, clearMoveAnimation],
+  );
+
   const startPosition = useCallback(
     (
       nextExercise: ExerciseType,
@@ -96,6 +170,8 @@ function App() {
       notice: FeedbackNotice = null,
       abortPrevious = true,
     ) => {
+      clearBoardTimers();
+
       if (abortPrevious) {
         abortActiveGameIfNeeded();
       }
@@ -124,9 +200,20 @@ function App() {
       setFeedbackNotice(notice);
       setHintSessionKey((key) => key + 1);
       applySnapshot(flow.snapshot);
+      setKingVisualFen(flow.snapshot.fen);
+
+      if (flow.snapshot.fen !== initialFen) {
+        runAfterMoveAnimation(() => undefined);
+      }
+
       setScreen('game');
     },
-    [abortActiveGameIfNeeded, applySnapshot],
+    [
+      abortActiveGameIfNeeded,
+      applySnapshot,
+      clearBoardTimers,
+      runAfterMoveAnimation,
+    ],
   );
 
   useEffect(() => {
@@ -178,10 +265,12 @@ function App() {
   };
 
   const goToHome = useCallback(() => {
+    clearBoardTimers();
     setGameEndModal(null);
     setScreen('home');
     setFeedbackNotice(null);
-  }, []);
+    setKingVisualFen(null);
+  }, [clearBoardTimers]);
 
   const handleAbortGame = useCallback(() => {
     if (activeGameRef.current && !gameRecordedRef.current) {
@@ -214,41 +303,85 @@ function App() {
     startPosition(exercise, playerSide);
   };
 
-  const handlePlayerMove = (from: string, to: string) => {
-    const currentFen = fen ?? '';
-    const result = processPlayerMove({
-      fen: currentFen,
-      from,
-      to,
-      exercise,
+  const scheduleMachineMove = useCallback(
+    (fenAfterPlayer: string, gameId: number) => {
+      setIsMachineThinking(true);
+
+      machineMoveTimeoutRef.current = window.setTimeout(() => {
+        machineMoveTimeoutRef.current = null;
+
+        const currentActive = activeGameRef.current;
+        if (!currentActive || currentActive.startedAt !== gameId) {
+          setIsMachineThinking(false);
+          return;
+        }
+
+        const machineSnapshot = applyMachineTurn(
+          fenAfterPlayer,
+          exercise,
+          playerSide,
+        );
+
+        activeGameRef.current = {
+          ...currentActive,
+          machineMoves: currentActive.machineMoves + 1,
+        };
+        setIsMachineThinking(false);
+        applySnapshotAnimated(machineSnapshot);
+      }, MACHINE_THINKING_DELAY_MS);
+    },
+    [applySnapshotAnimated, exercise, playerSide],
+  );
+
+  const handlePlayerMove = useCallback(
+    (from: string, to: string) => {
+      clearBoardTimers();
+
+      const currentFen = fen ?? '';
+      const result = applyPlayerMoveOnly({
+        fen: currentFen,
+        from,
+        to,
+        playerSide,
+      });
+
+      if (!result || !activeGameRef.current) {
+        return;
+      }
+
+      const active = activeGameRef.current;
+      const updatedAfterPlayer: ActiveGameRecord = {
+        ...active,
+        playerMoves: active.playerMoves + 1,
+      };
+      activeGameRef.current = updatedAfterPlayer;
+      setPlayerMoveCount(updatedAfterPlayer.playerMoves);
+
+      const needsMachine = shouldScheduleMachineMove(result.snapshot, playerSide);
+      const gameId = active.startedAt;
+
+      applySnapshotAnimated(result.snapshot, () => {
+        if (needsMachine) {
+          scheduleMachineMove(result.snapshot.fen, gameId);
+        }
+      });
+    },
+    [
+      fen,
       playerSide,
-    });
-
-    if (!result || !activeGameRef.current) {
-      return;
-    }
-
-    const afterPlayerFen = applyMove(currentFen, from, to);
-    const machineMoved =
-      afterPlayerFen !== null && result.snapshot.fen !== afterPlayerFen;
-
-    const updatedActive: ActiveGameRecord = {
-      ...activeGameRef.current,
-      playerMoves: activeGameRef.current.playerMoves + 1,
-      machineMoves:
-        activeGameRef.current.machineMoves + (machineMoved ? 1 : 0),
-    };
-    activeGameRef.current = updatedActive;
-    setPlayerMoveCount(updatedActive.playerMoves);
-
-    applySnapshot(result.snapshot);
-  };
+      clearBoardTimers,
+      applySnapshotAnimated,
+      scheduleMachineMove,
+    ],
+  );
 
   const handleIllegalMove = () => {
     setFeedbackNotice('illegal');
   };
 
   const boardLocked =
+    isAnimatingMove ||
+    isMachineThinking ||
     status !== 'playing' ||
     !fen ||
     !isBoardPlayable(snapshotFromFen(fen), playerSide);
@@ -283,6 +416,7 @@ function App() {
               playerMoveCount={playerMoveCount}
               feedbackNotice={feedbackNotice}
               suppressResultAlert={gameEndModal !== null}
+              isMachineThinking={isMachineThinking}
               onNewPosition={handleNewPosition}
               onRestart={handleRestart}
             />
@@ -291,7 +425,7 @@ function App() {
               exercise={exercise}
               playerSide={playerSide}
               fen={fen ?? undefined}
-              disabled={status !== 'playing'}
+              disabled={status !== 'playing' || isMachineThinking || isAnimatingMove}
             />
           </section>
 
@@ -299,6 +433,7 @@ function App() {
             {fen ? (
               <ChessBoardView
                 fen={fen}
+                kingVisualFen={kingVisualFen ?? fen}
                 playerSide={playerSide}
                 boardLocked={boardLocked}
                 onPlayerMove={handlePlayerMove}
