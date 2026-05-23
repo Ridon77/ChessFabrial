@@ -250,32 +250,57 @@ function App() {
   useEffect(() => {
     const active = activeGameRef.current;
     if (!active || gameRecordedRef.current || !fen) {
-      return;
+      return undefined;
     }
 
     if (!isTerminalGameStatus(status)) {
-      return;
+      return undefined;
     }
 
     const outcome = outcomeFromGameEnd(status, playerSide, fen);
     if (!outcome || outcome === 'aborted') {
-      return;
+      return undefined;
     }
 
     if (modalShownForGameRef.current === active.startedAt) {
-      return;
+      return undefined;
     }
 
     modalShownForGameRef.current = active.startedAt;
+    const gameId = active.startedAt;
     const terminalStatus =
       status === 'checkmate' || status === 'stalemate' || status === 'draw'
         ? status
         : 'draw';
-
-    setGameEndModal(
-      buildGameEndModalData(active, outcome, terminalStatus, drawReason),
+    const modalData = buildGameEndModalData(
+      active,
+      outcome,
+      terminalStatus,
+      drawReason,
     );
-    recordGame(outcome);
+
+    let cancelled = false;
+
+    void (async () => {
+      await sleep(MACHINE_THINKING_DELAY_MS);
+      if (cancelled) {
+        return;
+      }
+      const stillActive = activeGameRef.current;
+      if (
+        !stillActive ||
+        stillActive.startedAt !== gameId ||
+        gameRecordedRef.current
+      ) {
+        return;
+      }
+      setGameEndModal(modalData);
+      recordGame(outcome);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [status, fen, playerSide, drawReason, recordGame]);
 
   const handleSelectExercise = (selected: ExerciseType) => {
