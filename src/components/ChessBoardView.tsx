@@ -92,40 +92,6 @@ export function ChessBoardView({
     ],
   );
 
-  const handlePieceDrop = useCallback(
-    ({
-      sourceSquare,
-      targetSquare,
-    }: {
-      sourceSquare: string;
-      targetSquare: string | null;
-    }): boolean => {
-      if (!canInteract || !targetSquare) {
-        return false;
-      }
-
-      if (!isLegalMove(fen, sourceSquare, targetSquare)) {
-        onIllegalMove?.();
-        return false;
-      }
-
-      onPlayerMove?.(sourceSquare, targetSquare);
-      clearSelection(setSelectedSquare, setLegalTargets);
-      return true;
-    },
-    [canInteract, fen, onPlayerMove, onIllegalMove],
-  );
-
-  const canDragPiece = useCallback(
-    ({ piece }: { piece: { pieceType: string }; isSparePiece: boolean }) => {
-      if (!canInteract) {
-        return false;
-      }
-      return isPlayerPiece(piece.pieceType, playerSide);
-    },
-    [canInteract, playerSide],
-  );
-
   const squareStyles = useMemo(() => {
     if (!selectedSquare) {
       return {};
@@ -176,8 +142,7 @@ export function ChessBoardView({
       position: fen,
       pieces,
       boardOrientation,
-      allowDragging: canInteract,
-      allowDragOffBoard: false,
+      allowDragging: false,
       allowDrawingArrows: false,
       showAnimations: true,
       animationDurationInMs: BOARD_MOVE_ANIMATION_MS,
@@ -185,8 +150,6 @@ export function ChessBoardView({
       darkSquareStyle: { backgroundColor: '#b58863' },
       lightSquareStyle: { backgroundColor: '#f0d9b5' },
       squareStyles,
-      canDragPiece,
-      onPieceDrop: handlePieceDrop,
       onSquareClick: handleSquareClick,
       squareRenderer,
     }),
@@ -194,9 +157,6 @@ export function ChessBoardView({
       fen,
       pieces,
       boardOrientation,
-      canInteract,
-      canDragPiece,
-      handlePieceDrop,
       handleSquareClick,
       squareRenderer,
       squareStyles,
