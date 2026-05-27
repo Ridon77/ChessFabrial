@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { Chessboard } from 'react-chessboard';
 import type { SquareHandlerArgs } from 'react-chessboard';
 import { isPlayerPiece } from '../chess/boardInteraction';
@@ -6,16 +13,28 @@ import { getLegalTargetSquares, isLegalMove } from '../chess/moveValidation';
 import { buildEndgameCustomPiecesFromStates } from '../chess/customPieces';
 import { getKingVisualStates } from '../chess/kingVisuals';
 import { BOARD_MOVE_ANIMATION_MS } from '../config/boardAnimation';
+import {
+  buildGuidedSquareStyles,
+  getGuidedArrows,
+} from '../chess/guidedBoardAids';
 import { MOVE_DOT_MARKER } from '../config/boardMarkers';
 import { useLanguage } from '../i18n/useLanguage';
+import type { ExerciseType } from '../types/ExerciseType';
 import type { PlayerSide } from '../types/PlayerSide';
+import type { TrainingMode } from '../types/TrainingMode';
 
 export interface ChessBoardViewProps {
   fen: string;
   /** FEN per a imatges de rei (escac/mat); es retarden per no tallar l'animació de moviment. */
   kingVisualFen: string;
+  exercise: ExerciseType;
+  trainingMode: TrainingMode;
   playerSide: PlayerSide;
   boardLocked?: boolean;
+  /** Mostra caselles atacades i fletxes (mode guiat). */
+  guidedAidsVisible?: boolean;
+  /** FEN per calcular les ajudes (pot ser la posició després de la jugada blanca). */
+  guidedAidsPositionFen?: string;
   onPlayerMove?: (from: string, to: string) => void;
   onIllegalMove?: () => void;
 }
@@ -31,8 +50,12 @@ function clearSelection(
 export function ChessBoardView({
   fen,
   kingVisualFen,
+  exercise,
+  trainingMode,
   playerSide,
   boardLocked = false,
+  guidedAidsVisible = false,
+  guidedAidsPositionFen,
   onPlayerMove,
   onIllegalMove,
 }: ChessBoardViewProps) {
@@ -92,16 +115,30 @@ export function ChessBoardView({
     ],
   );
 
-  const squareStyles = useMemo(() => {
-    if (!selectedSquare) {
-      return {};
-    }
-    return {
-      [selectedSquare]: {
+  const aidsFen = guidedAidsPositionFen ?? fen;
+  const showGuidedAids = guidedAidsVisible && trainingMode === 'guided';
+
+  const squareOverlayStyles = useMemo(() => {
+    const styles: Record<string, CSSProperties> = showGuidedAids
+      ? buildGuidedSquareStyles(aidsFen)
+      : {};
+
+    if (selectedSquare) {
+      styles[selectedSquare] = {
+        ...styles[selectedSquare],
         backgroundColor: 'rgba(155, 199, 0, 0.41)',
-      },
-    };
-  }, [selectedSquare]);
+      };
+    }
+
+    return styles;
+  }, [aidsFen, selectedSquare, showGuidedAids]);
+
+  const guidedArrows = useMemo(() => {
+    if (!showGuidedAids) {
+      return [];
+    }
+    return getGuidedArrows(aidsFen, exercise);
+  }, [aidsFen, exercise, showGuidedAids]);
 
   const legalTargetSet = useMemo(
     () => new Set(legalTargets),
@@ -109,9 +146,15 @@ export function ChessBoardView({
   );
 
   const squareRenderer = useCallback(
-    ({ square, children }: SquareHandlerArgs & { children?: ReactNode }) => (
+    ({ square, children }: SquareHandlerArgs & { children?: ReactNode }) => {
+      const overlayStyle = squareOverlayStyles[square];
+
+      return (
       <div className="chess-square-inner">
         {children}
+        {overlayStyle ? (
+          <div className="square-overlay" style={overlayStyle} aria-hidden />
+        ) : null}
         {legalTargetSet.has(square) ? (
           <img
             src={MOVE_DOT_MARKER}
@@ -121,8 +164,9 @@ export function ChessBoardView({
           />
         ) : null}
       </div>
-    ),
-    [legalTargetSet],
+      );
+    },
+    [legalTargetSet, squareOverlayStyles],
   );
 
   const kingStates = useMemo(
@@ -144,12 +188,13 @@ export function ChessBoardView({
       boardOrientation,
       allowDragging: false,
       allowDrawingArrows: false,
+      arrows: guidedArrows,
+      clearArrowsOnPositionChange: true,
       showAnimations: true,
       animationDurationInMs: BOARD_MOVE_ANIMATION_MS,
       showNotation: true,
       darkSquareStyle: { backgroundColor: '#b58863' },
       lightSquareStyle: { backgroundColor: '#f0d9b5' },
-      squareStyles,
       onSquareClick: handleSquareClick,
       squareRenderer,
     }),
@@ -157,9 +202,9 @@ export function ChessBoardView({
       fen,
       pieces,
       boardOrientation,
+      guidedArrows,
       handleSquareClick,
       squareRenderer,
-      squareStyles,
     ],
   );
 

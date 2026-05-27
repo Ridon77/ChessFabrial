@@ -9,6 +9,11 @@ import {
 } from './chess/gameFlow';
 import { BOARD_MOVE_ANIMATION_MS } from './config/boardAnimation';
 import { DEFAULT_PLAYER_SIDE } from './config/featureFlags';
+import {
+  DEFAULT_TRAINING_MODE,
+  isTrainingModeAvailable,
+} from './config/trainingMode';
+import { isWhiteToMove } from './chess/guidedBoardAids';
 import { snapshotFromFen } from './chess/gameState';
 import { resetExerciseSession } from './chess/resetExerciseSession';
 import {
@@ -43,12 +48,19 @@ import type { SessionStats } from './types/GameResult';
 import type { GameStatus as Status } from './types/ChessTypes';
 import type { ExerciseType } from './types/ExerciseType';
 import type { PlayerSide } from './types/PlayerSide';
+import type { TrainingMode } from './types/TrainingMode';
 import { isExerciseFullyImplemented } from './config/exerciseImplementation';
 import './App.css';
 
 const FEEDBACK_DURATION_MS = 3000;
 
 type AppScreen = 'home' | 'game';
+interface UndoSnapshotEntry {
+  snapshot: GameSnapshot;
+  active: ActiveGameRecord;
+  playerMoveCount: number;
+  kingVisualFen: string;
+}
 
 function App() {
   const { t } = useLanguage();
@@ -56,6 +68,7 @@ function App() {
   const [sessionStats, setSessionStats] = useState<SessionStats>(createEmptySessionStats);
   const [exercise, setExercise] = useState<ExerciseType>('KQK');
   const [playerSide, setPlayerSide] = useState<PlayerSide>(DEFAULT_PLAYER_SIDE);
+  const [trainingMode, setTrainingMode] = useState<TrainingMode>(DEFAULT_TRAINING_MODE);
   const [fen, setFen] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [drawReason, setDrawReason] = useState<string | null>(null);
@@ -73,16 +86,25 @@ function App() {
   const [isMachineThinking, setIsMachineThinking] = useState(false);
   const [isAnimatingMove, setIsAnimatingMove] = useState(false);
   const [kingVisualFen, setKingVisualFen] = useState<string | null>(null);
+  const [guidedAidsFen, setGuidedAidsFen] = useState<string | null>(null);
+  const undoStackRef = useRef<UndoSnapshotEntry[]>([]);
+  const [undoDepth, setUndoDepth] = useState(0);
 
   const cancelTurnPipeline = useCallback(() => {
     turnPipelineRef.current += 1;
     setIsMachineThinking(false);
     setIsAnimatingMove(false);
+    setGuidedAidsFen(null);
   }, []);
 
   const clearBoardTimers = useCallback(() => {
     cancelTurnPipeline();
   }, [cancelTurnPipeline]);
+
+  const resetUndoHistory = useCallback(() => {
+    undoStackRef.current = [];
+    setUndoDepth(0);
+  }, []);
 
   const applySnapshot = useCallback((snapshot: GameSnapshot) => {
     setFen(snapshot.fen);
@@ -116,6 +138,22 @@ function App() {
     setSessionStats((stats) => appendGameResult(stats, entry));
     gameRecordedRef.current = true;
     activeGameRef.current = null;
+  }, []);
+
+  const removeLatestRecordedGameById = useCallback((gameId: number) => {
+    setSessionStats((stats) => {
+      for (let i = stats.results.length - 1; i >= 0; i -= 1) {
+        if (stats.results[i].startedAt === gameId) {
+          return {
+            results: [
+              ...stats.results.slice(0, i),
+              ...stats.results.slice(i + 1),
+            ],
+          };
+        }
+      }
+      return stats;
+    });
   }, []);
 
   const abortActiveGameIfNeeded = useCallback(() => {
@@ -186,6 +224,7 @@ function App() {
       nextPlayerSide: PlayerSide,
       notice: FeedbackNotice = null,
       abortPrevious = true,
+      nextTrainingMode?: TrainingMode,
     ) => {
       clearBoardTimers();
 
@@ -201,7 +240,17 @@ function App() {
         nextPlayerSide,
       );
 
-      let active = startActiveGame(nextExercise, nextPlayerSide);
+      const resolvedTrainingMode = nextTrainingMode ?? trainingMode;
+      let normalizedTrainingMode = resolvedTrainingMode;
+      if (!isTrainingModeAvailable(nextExercise, normalizedTrainingMode)) {
+        normalizedTrainingMode = DEFAULT_TRAINING_MODE;
+      }
+
+      let active = startActiveGame(
+        nextExercise,
+        nextPlayerSide,
+        normalizedTrainingMode,
+      );
       if (flow.snapshot.fen !== initialFen) {
         active = { ...active, machineMoves: 1 };
       }
@@ -209,11 +258,14 @@ function App() {
       activeGameRef.current = active;
       gameRecordedRef.current = false;
       modalShownForGameRef.current = null;
+      resetUndoHistory();
+      setGuidedAidsFen(null);
       setGameEndModal(null);
       setPlayerMoveCount(0);
 
       setExercise(nextExercise);
       setPlayerSide(nextPlayerSide);
+      setTrainingMode(normalizedTrainingMode);
       setFeedbackNotice(notice);
       setHintSessionKey((key) => key + 1);
       applySnapshot(flow.snapshot);
@@ -234,7 +286,13 @@ function App() {
 
       setScreen('game');
     },
-    [abortActiveGameIfNeeded, applySnapshot, clearBoardTimers],
+    [
+      abortActiveGameIfNeeded,
+      applySnapshot,
+      clearBoardTimers,
+      resetUndoHistory,
+      trainingMode,
+    ],
   );
 
   useEffect(() => {
@@ -303,20 +361,28 @@ function App() {
     };
   }, [status, fen, playerSide, drawReason, recordGame]);
 
-  const handleSelectExercise = (selected: ExerciseType) => {
+  const handleSelectExercise = (
+    selected: ExerciseType,
+    mode: TrainingMode,
+  ) => {
     if (!isExerciseFullyImplemented(selected)) {
       return;
     }
-    startPosition(selected, DEFAULT_PLAYER_SIDE, null, false);
+    if (!isTrainingModeAvailable(selected, mode)) {
+      return;
+    }
+    startPosition(selected, DEFAULT_PLAYER_SIDE, null, false, mode);
   };
 
   const goToHome = useCallback(() => {
     clearBoardTimers();
+    resetUndoHistory();
     setGameEndModal(null);
     setScreen('home');
     setFeedbackNotice(null);
     setKingVisualFen(null);
-  }, [clearBoardTimers]);
+    setGuidedAidsFen(null);
+  }, [clearBoardTimers, resetUndoHistory]);
 
   const handleAbortGame = useCallback(() => {
     if (activeGameRef.current && !gameRecordedRef.current) {
@@ -340,6 +406,48 @@ function App() {
   const handleReplayFromModal = useCallback(() => {
     startPosition(exercise, playerSide, null, false);
   }, [exercise, playerSide, startPosition]);
+
+  const restorePreviousSnapshot = useCallback(
+    (removeRecordedResult: boolean): boolean => {
+      const previous =
+        undoStackRef.current.length > 0
+          ? undoStackRef.current[undoStackRef.current.length - 1]
+          : null;
+      if (!previous) {
+        return false;
+      }
+
+      undoStackRef.current = undoStackRef.current.slice(0, -1);
+      setUndoDepth(undoStackRef.current.length);
+
+      cancelTurnPipeline();
+      if (removeRecordedResult && gameRecordedRef.current) {
+        removeLatestRecordedGameById(previous.active.startedAt);
+      }
+
+      activeGameRef.current = { ...previous.active };
+      gameRecordedRef.current = false;
+      modalShownForGameRef.current = null;
+      setGameEndModal(null);
+      setFeedbackNotice(null);
+      setPlayerMoveCount(previous.playerMoveCount);
+      setKingVisualFen(previous.kingVisualFen);
+      applySnapshot(previous.snapshot);
+      return true;
+    },
+    [applySnapshot, cancelTurnPipeline, removeLatestRecordedGameById],
+  );
+
+  const handleUndoDuringGame = useCallback(() => {
+    if (status !== 'playing') {
+      return;
+    }
+    restorePreviousSnapshot(false);
+  }, [restorePreviousSnapshot, status]);
+
+  const handleReturnToPreviousMove = useCallback(() => {
+    restorePreviousSnapshot(true);
+  }, [restorePreviousSnapshot]);
 
   const handleNewPosition = () => {
     startPosition(exercise, playerSide, 'newPosition');
@@ -377,6 +485,15 @@ function App() {
       }
 
       const active = activeGameRef.current;
+      const snapshotBeforeMove: UndoSnapshotEntry = {
+        snapshot: snapshotFromFen(currentFen),
+        active: { ...active },
+        playerMoveCount: active.playerMoves,
+        kingVisualFen: kingVisualFen ?? currentFen,
+      };
+      undoStackRef.current = [...undoStackRef.current, snapshotBeforeMove];
+      setUndoDepth(undoStackRef.current.length);
+
       const updatedAfterPlayer: ActiveGameRecord = {
         ...active,
         playerMoves: active.playerMoves + 1,
@@ -388,17 +505,30 @@ function App() {
       const gameId = active.startedAt;
       const fenAfterPlayer = result.snapshot.fen;
 
+      if (trainingMode === 'guided' && needsMachine) {
+        setGuidedAidsFen(fenAfterPlayer);
+      } else {
+        setGuidedAidsFen(null);
+      }
+
       void (async () => {
-        const animationDone = await animateToSnapshot(result.snapshot, pipelineId);
-        if (!animationDone) {
-          return;
-        }
+        try {
+          const animationDone = await animateToSnapshot(
+            result.snapshot,
+            pipelineId,
+          );
+          if (!animationDone) {
+            return;
+          }
 
-        if (!needsMachine) {
-          return;
-        }
+          if (!needsMachine) {
+            return;
+          }
 
-        await runMachineTurnAfterPlayer(fenAfterPlayer, gameId, pipelineId);
+          await runMachineTurnAfterPlayer(fenAfterPlayer, gameId, pipelineId);
+        } finally {
+          setGuidedAidsFen(null);
+        }
       })();
     },
     [
@@ -410,7 +540,9 @@ function App() {
       gameEndModal,
       cancelTurnPipeline,
       animateToSnapshot,
+      kingVisualFen,
       runMachineTurnAfterPlayer,
+      trainingMode,
     ],
   );
 
@@ -425,6 +557,15 @@ function App() {
     status !== 'playing' ||
     !fen ||
     !isBoardPlayable(snapshotFromFen(fen), playerSide);
+
+  const guidedAidsVisible =
+    trainingMode === 'guided' &&
+    status === 'playing' &&
+    gameEndModal === null &&
+    fen !== null &&
+    (guidedAidsFen !== null ||
+      (isWhiteToMove(fen) &&
+        isBoardPlayable(snapshotFromFen(fen), playerSide)));
 
   return (
     <div className="app">
@@ -449,6 +590,7 @@ function App() {
             <SessionStatsPanel stats={sessionStats} compact />
             <GameStatus
               exercise={exercise}
+              trainingMode={trainingMode}
               playerSide={playerSide}
               status={status}
               fen={fen ?? ''}
@@ -460,13 +602,15 @@ function App() {
               onNewPosition={handleNewPosition}
               onRestart={handleRestart}
             />
-            <HintBox
-              key={`${hintSessionKey}-${exercise}-${playerSide}`}
-              exercise={exercise}
-              playerSide={playerSide}
-              fen={fen ?? undefined}
-              disabled={status !== 'playing' || isMachineThinking || isAnimatingMove}
-            />
+            {trainingMode !== 'hard' && (
+              <HintBox
+                key={`${hintSessionKey}-${exercise}-${playerSide}`}
+                exercise={exercise}
+                playerSide={playerSide}
+                fen={fen ?? undefined}
+                disabled={status !== 'playing' || isMachineThinking || isAnimatingMove}
+              />
+            )}
           </section>
 
           <section className="app-board">
@@ -474,8 +618,12 @@ function App() {
               <ChessBoardView
                 fen={fen}
                 kingVisualFen={kingVisualFen ?? fen}
+                exercise={exercise}
+                trainingMode={trainingMode}
                 playerSide={playerSide}
                 boardLocked={boardLocked}
+                guidedAidsVisible={guidedAidsVisible}
+                guidedAidsPositionFen={guidedAidsFen ?? fen}
                 onPlayerMove={handlePlayerMove}
                 onIllegalMove={handleIllegalMove}
               />
@@ -486,6 +634,8 @@ function App() {
             )}
             <GameBoardActions
               isPlaying={status === 'playing'}
+              canUndo={status === 'playing' && undoDepth > 0}
+              onUndo={handleUndoDuringGame}
               onAbort={handleAbortGame}
               onGoHome={handleGoHomeFinished}
             />
@@ -495,6 +645,11 @@ function App() {
             <GameResultModal
               data={gameEndModal}
               onReplay={handleReplayFromModal}
+              onReturnPrevious={
+                gameEndModal.outcome === 'draw' || gameEndModal.outcome === 'loss'
+                  ? handleReturnToPreviousMove
+                  : undefined
+              }
               onViewBoard={handleViewBoard}
               onGoHome={handleGoHomeFromModal}
             />

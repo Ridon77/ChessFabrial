@@ -329,6 +329,13 @@
   height: 100%;
 }
 
+.square-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
 .move-target-dot {
   position: absolute;
   left: 50%;
@@ -494,34 +501,80 @@
 .home-exercise-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.65rem;
   width: 100%;
   min-height: 11rem;
-  padding: 1.1rem 1rem;
-  text-align: center;
   background: #faf8f4;
   border: 2px solid #c4b59a;
   border-radius: 10px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
-}
-
-.home-exercise-card:hover:not(:disabled) {
-  background: #f0e8da;
-  border-color: #8b7355;
-  transform: translateY(-2px);
-}
-
-.home-exercise-card:focus-visible {
-  outline: 3px solid #8b7355;
-  outline-offset: 2px;
+  overflow: hidden;
 }
 
 .home-exercise-card--disabled {
   opacity: 0.55;
-  cursor: not-allowed;
   background: #f0eeea;
+}
+
+.home-exercise-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1.1rem 1rem 0.75rem;
+  text-align: center;
+}
+
+.home-exercise-card__modes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem 0.65rem;
+  border-top: 1px solid #d4c9b5;
+  background: #f0ebe2;
+}
+
+.home-exercise-card__mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #2a2218;
+  background: #faf8f4;
+  border: 1px solid #c4b59a;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.home-exercise-card__mode-label {
+  line-height: 1.2;
+}
+
+.home-exercise-card__mode-soon {
+  font-size: 0.62rem;
+  font-weight: 600;
+  font-style: italic;
+  color: #8b7355;
+  text-transform: none;
+}
+
+.home-exercise-card__mode-btn:hover:not(:disabled) {
+  background: #f0e8da;
+  border-color: #8b7355;
+}
+
+.home-exercise-card__mode-btn:focus-visible {
+  outline: 2px solid #8b7355;
+  outline-offset: 1px;
+}
+
+.home-exercise-card__mode-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .home-exercise-card__icons {
@@ -556,6 +609,14 @@
   font-weight: 700;
   color: #2a2218;
   line-height: 1.3;
+}
+
+.home-exercise-card__description {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #5c4a32;
+  max-width: 18rem;
 }
 
 .home-exercise-card__meta {

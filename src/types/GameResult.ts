@@ -1,6 +1,7 @@
 import type { GameMode } from './GameMode';
 import type { ExerciseType } from './ExerciseType';
 import type { PlayerSide } from './PlayerSide';
+import type { TrainingMode } from './TrainingMode';
 
 export type GameResultOutcome = 'win' | 'draw' | 'loss' | 'aborted';
 
@@ -9,6 +10,7 @@ export interface GameResult {
   exerciseType: ExerciseType;
   playerSide: PlayerSide;
   mode: GameMode;
+  trainingMode: TrainingMode;
   result: GameResultOutcome;
   moves: number;
   playerMoves: number;

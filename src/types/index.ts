@@ -23,6 +23,16 @@ export {
   PLAYER_SIDE_LABELS,
 } from './PlayerSide';
 
+export type { TrainingMode } from './TrainingMode';
+export { TRAINING_MODES } from './TrainingMode';
+
+export type {
+  LearningArrow,
+  LearningExpectedMove,
+  LearningStep,
+  LearningTutorial,
+} from './LearningTutorial';
+
 export type { GameMode } from './GameMode';
 export {
   GAME_MODES,

@@ -2,6 +2,7 @@ import {
   getModeLabelShort,
   getResultBriefMessage,
   getResultTitle,
+  getTrainingModeLabel,
   type GameEndModalData,
 } from '../chess/gameResultMessages';
 import { exerciseLabelKey } from '../i18n/translations';
@@ -10,6 +11,7 @@ import { useLanguage } from '../i18n/useLanguage';
 interface GameResultModalProps {
   data: GameEndModalData;
   onReplay: () => void;
+  onReturnPrevious?: () => void;
   onViewBoard: () => void;
   onGoHome: () => void;
 }
@@ -17,6 +19,7 @@ interface GameResultModalProps {
 export function GameResultModal({
   data,
   onReplay,
+  onReturnPrevious,
   onViewBoard,
   onGoHome,
 }: GameResultModalProps) {
@@ -53,8 +56,12 @@ export function GameResultModal({
             <dd>{t(exerciseLabelKey(data.exercise))}</dd>
           </div>
           <div className="game-result-details-row">
-            <dt>{t('result.mode')}</dt>
+            <dt>{t('result.sideMode')}</dt>
             <dd>{getModeLabelShort(language, data.mode)}</dd>
+          </div>
+          <div className="game-result-details-row">
+            <dt>{t('result.trainingMode')}</dt>
+            <dd>{getTrainingModeLabel(language, data.trainingMode)}</dd>
           </div>
           <div className="game-result-details-row">
             <dt>{t('result.moves')}</dt>
@@ -66,6 +73,15 @@ export function GameResultModal({
           <button type="button" className="btn-action" onClick={onReplay}>
             {t('result.replay')}
           </button>
+          {onReturnPrevious && (
+            <button
+              type="button"
+              className="btn-action btn-action--secondary"
+              onClick={onReturnPrevious}
+            >
+              {t('result.returnPrevious')}
+            </button>
+          )}
           <button
             type="button"
             className="btn-action btn-action--secondary"

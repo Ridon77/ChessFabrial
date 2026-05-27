@@ -2,9 +2,12 @@ import type { GameMode } from '../types/GameMode';
 import { GAME_MODES } from '../types/GameMode';
 import type { ExerciseType } from '../types/ExerciseType';
 import type { GameResult, SessionStats } from '../types/GameResult';
+import type { TrainingMode } from '../types/TrainingMode';
+import { TRAINING_MODES } from '../types/TrainingMode';
 import {
   exerciseLabelKey,
   gameModeKey,
+  trainingModeKey,
   translate,
 } from '../i18n/translations';
 import type { Language } from '../i18n/types';
@@ -24,6 +27,8 @@ export interface ExerciseModeTableRow {
   exerciseLabel: string;
   mode: GameMode;
   modeLabel: string;
+  trainingMode: TrainingMode;
+  trainingModeLabel: string;
   played: number;
   wins: number;
   draws: number;
@@ -85,7 +90,7 @@ export function getExerciseModeTable(
   const groups = new Map<string, GameResult[]>();
 
   for (const entry of stats.results) {
-    const key = `${entry.exerciseType}:${entry.mode}`;
+    const key = `${entry.exerciseType}:${entry.mode}:${entry.trainingMode}`;
     const list = groups.get(key) ?? [];
     list.push(entry);
     groups.set(key, list);
@@ -94,7 +99,11 @@ export function getExerciseModeTable(
   const rows: ExerciseModeTableRow[] = [];
 
   for (const [key, games] of groups) {
-    const [exerciseType, mode] = key.split(':') as [ExerciseType, GameMode];
+    const [exerciseType, mode, trainingMode] = key.split(':') as [
+      ExerciseType,
+      GameMode,
+      TrainingMode,
+    ];
     const wins = games.filter((g) => g.result === 'win');
     const winMoves = wins.map((g) => g.moves);
 
@@ -103,6 +112,8 @@ export function getExerciseModeTable(
       exerciseLabel: translate(lang, exerciseLabelKey(exerciseType)),
       mode,
       modeLabel: translate(lang, gameModeKey(mode)),
+      trainingMode,
+      trainingModeLabel: translate(lang, trainingModeKey(trainingMode)),
       played: games.length,
       wins: games.filter((g) => g.result === 'win').length,
       draws: games.filter((g) => g.result === 'draw').length,
@@ -120,7 +131,15 @@ export function getExerciseModeTable(
     if (a.exerciseLabel !== b.exerciseLabel) {
       return a.exerciseLabel.localeCompare(b.exerciseLabel, lang);
     }
-    return a.modeLabel.localeCompare(b.modeLabel, lang);
+    if (a.modeLabel !== b.modeLabel) {
+      return a.modeLabel.localeCompare(b.modeLabel, lang);
+    }
+    const trainingOrder = TRAINING_MODES.indexOf(a.trainingMode)
+      - TRAINING_MODES.indexOf(b.trainingMode);
+    if (trainingOrder !== 0) {
+      return trainingOrder;
+    }
+    return a.trainingModeLabel.localeCompare(b.trainingModeLabel, lang);
   });
 }
 

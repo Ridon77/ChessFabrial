@@ -28,6 +28,7 @@ export function SessionStatsTable({ stats }: SessionStatsTableProps) {
             <tr>
               <th scope="col">{t('stats.tableExercise')}</th>
               <th scope="col">{t('stats.tableMode')}</th>
+              <th scope="col">{t('stats.tableTrainingMode')}</th>
               <th scope="col">{t('stats.tablePlayed')}</th>
               <th scope="col">{t('stats.tableWon')}</th>
               <th scope="col">{t('stats.tableDrawn')}</th>
@@ -39,9 +40,12 @@ export function SessionStatsTable({ stats }: SessionStatsTableProps) {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={`${row.exerciseType}-${row.mode}`}>
+              <tr
+                key={`${row.exerciseType}-${row.mode}-${row.trainingMode}`}
+              >
                 <td>{row.exerciseLabel}</td>
                 <td>{row.modeLabel}</td>
+                <td>{row.trainingModeLabel}</td>
                 <td>{row.played}</td>
                 <td>{row.wins}</td>
                 <td>{row.draws}</td>

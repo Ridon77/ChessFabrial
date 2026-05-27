@@ -4,9 +4,11 @@ import type { GameResultOutcome } from '../types/GameResult';
 import type { GameStatus } from '../types/ChessTypes';
 import type { ExerciseType } from '../types/ExerciseType';
 import type { PlayerSide } from '../types/PlayerSide';
+import type { TrainingMode } from '../types/TrainingMode';
 import { isSpecialExercise } from '../types/ExerciseType';
 import {
   gameModeShortKey,
+  trainingModeKey,
   translate,
   translateDrawReason,
   type TranslationKey,
@@ -30,6 +32,13 @@ export function getResultTitle(
 
 export function getModeLabelShort(lang: Language, mode: GameMode): string {
   return translate(lang, gameModeShortKey(mode));
+}
+
+export function getTrainingModeLabel(
+  lang: Language,
+  trainingMode: TrainingMode,
+): string {
+  return translate(lang, trainingModeKey(trainingMode));
 }
 
 export function getResultBriefMessage(
@@ -67,6 +76,7 @@ export interface GameEndModalData {
   outcome: PlayerResultOutcome;
   exercise: ExerciseType;
   mode: GameMode;
+  trainingMode: TrainingMode;
   playerMoves: number;
   status: 'checkmate' | 'stalemate' | 'draw';
   drawReason: string | null;
@@ -76,6 +86,7 @@ export function buildGameEndModalData(
   active: {
     exerciseType: ExerciseType;
     playerSide: PlayerSide;
+    trainingMode: TrainingMode;
     playerMoves: number;
   },
   outcome: PlayerResultOutcome,
@@ -86,6 +97,7 @@ export function buildGameEndModalData(
     outcome,
     exercise: active.exerciseType,
     mode: gameModeFromPlayerSide(active.playerSide),
+    trainingMode: active.trainingMode,
     playerMoves: active.playerMoves,
     status,
     drawReason,

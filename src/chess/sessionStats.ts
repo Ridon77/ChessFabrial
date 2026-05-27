@@ -5,11 +5,13 @@ import type { GameResult, GameResultOutcome, SessionStats, SessionStatsSummary }
 import type { GameStatus } from '../types/ChessTypes';
 import type { ExerciseType } from '../types/ExerciseType';
 import type { PlayerSide } from '../types/PlayerSide';
+import type { TrainingMode } from '../types/TrainingMode';
 
 export interface ActiveGameRecord {
   exerciseType: ExerciseType;
   playerSide: PlayerSide;
   mode: GameMode;
+  trainingMode: TrainingMode;
   startedAt: number;
   playerMoves: number;
   machineMoves: number;
@@ -78,6 +80,7 @@ export function buildGameResult(
     exerciseType: active.exerciseType,
     playerSide: active.playerSide,
     mode: active.mode,
+    trainingMode: active.trainingMode,
     result,
     moves: playerMoves,
     playerMoves,
@@ -100,11 +103,13 @@ export function appendGameResult(
 export function startActiveGame(
   exerciseType: ExerciseType,
   playerSide: PlayerSide,
+  trainingMode: TrainingMode,
 ): ActiveGameRecord {
   return {
     exerciseType,
     playerSide,
     mode: gameModeFromPlayerSide(playerSide),
+    trainingMode,
     startedAt: Date.now(),
     playerMoves: 0,
     machineMoves: 0,

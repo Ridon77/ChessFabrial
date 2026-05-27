@@ -15,11 +15,14 @@ import {
 import type { ExerciseType } from '../types/ExerciseType';
 import type { GameStatus as Status } from '../types/ChessTypes';
 import type { PlayerSide } from '../types/PlayerSide';
+import type { TrainingMode } from '../types/TrainingMode';
+import { trainingModeKey } from '../i18n/translations';
 
 export type FeedbackNotice = 'illegal' | 'newPosition' | null;
 
 interface GameStatusProps {
   exercise: ExerciseType;
+  trainingMode: TrainingMode;
   playerSide: PlayerSide;
   status: Status;
   fen: string;
@@ -34,6 +37,7 @@ interface GameStatusProps {
 
 export function GameStatus({
   exercise,
+  trainingMode,
   playerSide,
   status,
   fen,
@@ -126,6 +130,10 @@ export function GameStatus({
         <div className="game-status-row">
           <dt>{t('gameStatus.mode')}</dt>
           <dd>{t(gameModeKey(mode))}</dd>
+        </div>
+        <div className="game-status-row">
+          <dt>{t('gameStatus.trainingMode')}</dt>
+          <dd>{t(trainingModeKey(trainingMode))}</dd>
         </div>
         <div className="game-status-row">
           <dt>{t('gameStatus.side')}</dt>

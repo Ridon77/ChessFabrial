@@ -2,6 +2,7 @@ import type { ExerciseDifficulty } from '../types/ExerciseType';
 import type { ExerciseType } from '../types/ExerciseType';
 import type { GameMode } from '../types/GameMode';
 import type { Language } from './types';
+import type { TrainingMode } from '../types/TrainingMode';
 
 export type TranslationKey = keyof typeof TRANSLATIONS.ca;
 
@@ -19,6 +20,21 @@ const TRANSLATIONS = {
     'home.comingSoon': 'Properament',
     'home.modeAttack': 'Mode atac',
     'home.statsSection': 'Resum de la sessió',
+    'home.trainingModes': 'Modes de joc per a {exercise}',
+    'trainingMode.hard': 'Mode dur',
+    'trainingMode.guided': 'Mode guiat',
+    'trainingMode.learning': 'Mode aprenentatge',
+    'trainingMode.short.hard': 'Dur',
+    'trainingMode.short.guided': 'Guiat',
+    'trainingMode.short.learning': 'Aprenentatge',
+    'trainingMode.learningPending': 'Mode aprenentatge pendent de definir.',
+
+    'exercise.description.KQK': 'Rei blanc + reina contra rei negre.',
+    'exercise.description.KRK': 'Rei blanc + torre contra rei negre.',
+    'exercise.description.KRRK': 'Rei blanc + dues torres contra rei negre.',
+    'exercise.description.KBBK': 'Rei blanc + dos alfils contra rei negre.',
+    'exercise.description.KBNK': 'Rei blanc + alfil i cavall contra rei negre.',
+    'exercise.description.KNNK': 'Rei blanc + dos cavalls contra rei negre.',
 
     'exercise.label.KQK': 'Rei + Reina contra Rei',
     'exercise.label.KRK': 'Rei + Torre contra Rei',
@@ -69,6 +85,7 @@ const TRANSLATIONS = {
     'gameStatus.difficulty': 'Dificultat',
     'gameStatus.forcedMate': 'Mat forçat',
     'gameStatus.mode': 'Mode',
+    'gameStatus.trainingMode': 'Mode de joc',
     'gameStatus.side': 'Bàndol',
     'gameStatus.objective': 'Objectiu',
     'gameStatus.turn': 'Torn',
@@ -106,8 +123,11 @@ const TRANSLATIONS = {
     'result.loss': 'Derrota',
     'result.exercise': 'Exercici',
     'result.mode': 'Mode',
+    'result.sideMode': 'Mode atac/defensa',
+    'result.trainingMode': 'Mode de joc',
     'result.moves': 'Jugades',
     'result.replay': 'Rejugar',
+    'result.returnPrevious': 'Tornar al moviment anterior',
     'result.viewBoard': 'Veure el taulell',
     'result.goHome': "Anar a l'inici",
     'result.winSpecial':
@@ -122,6 +142,8 @@ const TRANSLATIONS = {
 
     'draw.insufficientMaterial': 'Material insuficient',
 
+    'boardActions.cancel': 'Cancel·lar partida',
+    'boardActions.undo': 'Enrere',
     'boardActions.abort': 'Abortar partida',
     'boardActions.goHome': "Anar a l'inici",
 
@@ -143,7 +165,8 @@ const TRANSLATIONS = {
     'stats.chartAborted': 'Avortades',
     'stats.tableTitle': 'Taula comparativa',
     'stats.tableExercise': 'Exercici',
-    'stats.tableMode': 'Mode',
+    'stats.tableMode': 'Mode atac/defensa',
+    'stats.tableTrainingMode': 'Mode de joc',
     'stats.tablePlayed': 'Partides',
     'stats.tableWon': 'Guanyades',
     'stats.tableDrawn': 'Empatades',
@@ -178,6 +201,21 @@ const TRANSLATIONS = {
     'home.comingSoon': 'Próximamente',
     'home.modeAttack': 'Modo ataque',
     'home.statsSection': 'Resumen de la sesión',
+    'home.trainingModes': 'Modos de juego para {exercise}',
+    'trainingMode.hard': 'Modo duro',
+    'trainingMode.guided': 'Modo guiado',
+    'trainingMode.learning': 'Modo aprendizaje',
+    'trainingMode.short.hard': 'Duro',
+    'trainingMode.short.guided': 'Guiado',
+    'trainingMode.short.learning': 'Aprendizaje',
+    'trainingMode.learningPending': 'Modo aprendizaje pendiente de definir.',
+
+    'exercise.description.KQK': 'Rey blanco + dama contra rey negro.',
+    'exercise.description.KRK': 'Rey blanco + torre contra rey negro.',
+    'exercise.description.KRRK': 'Rey blanco + dos torres contra rey negro.',
+    'exercise.description.KBBK': 'Rey blanco + dos alfiles contra rey negro.',
+    'exercise.description.KBNK': 'Rey blanco + alfil y caballo contra rey negro.',
+    'exercise.description.KNNK': 'Rey blanco + dos caballos contra rey negro.',
 
     'exercise.label.KQK': 'Rey + Dama contra Rey',
     'exercise.label.KRK': 'Rey + Torre contra Rey',
@@ -228,6 +266,7 @@ const TRANSLATIONS = {
     'gameStatus.difficulty': 'Dificultad',
     'gameStatus.forcedMate': 'Mate forzado',
     'gameStatus.mode': 'Modo',
+    'gameStatus.trainingMode': 'Modo de juego',
     'gameStatus.side': 'Band',
     'gameStatus.objective': 'Objetivo',
     'gameStatus.turn': 'Turno',
@@ -265,8 +304,11 @@ const TRANSLATIONS = {
     'result.loss': 'Derrota',
     'result.exercise': 'Ejercicio',
     'result.mode': 'Modo',
+    'result.sideMode': 'Modo ataque/defensa',
+    'result.trainingMode': 'Modo de juego',
     'result.moves': 'Jugadas',
     'result.replay': 'Repetir',
+    'result.returnPrevious': 'Volver al movimiento anterior',
     'result.viewBoard': 'Ver el tablero',
     'result.goHome': 'Ir al inicio',
     'result.winSpecial':
@@ -281,6 +323,8 @@ const TRANSLATIONS = {
 
     'draw.insufficientMaterial': 'Material insuficiente',
 
+    'boardActions.cancel': 'Cancelar partida',
+    'boardActions.undo': 'Atrás',
     'boardActions.abort': 'Abortar partida',
     'boardActions.goHome': 'Ir al inicio',
 
@@ -302,7 +346,8 @@ const TRANSLATIONS = {
     'stats.chartAborted': 'Abortadas',
     'stats.tableTitle': 'Tabla comparativa',
     'stats.tableExercise': 'Ejercicio',
-    'stats.tableMode': 'Modo',
+    'stats.tableMode': 'Modo ataque/defensa',
+    'stats.tableTrainingMode': 'Modo de juego',
     'stats.tablePlayed': 'Partidas',
     'stats.tableWon': 'Ganadas',
     'stats.tableDrawn': 'Empatadas',
@@ -337,6 +382,21 @@ const TRANSLATIONS = {
     'home.comingSoon': 'Coming soon',
     'home.modeAttack': 'Attack mode',
     'home.statsSection': 'Session summary',
+    'home.trainingModes': 'Game modes for {exercise}',
+    'trainingMode.hard': 'Hard mode',
+    'trainingMode.guided': 'Guided mode',
+    'trainingMode.learning': 'Learning mode',
+    'trainingMode.short.hard': 'Hard',
+    'trainingMode.short.guided': 'Guided',
+    'trainingMode.short.learning': 'Learning',
+    'trainingMode.learningPending': 'Learning mode not defined yet.',
+
+    'exercise.description.KQK': 'White king + queen vs black king.',
+    'exercise.description.KRK': 'White king + rook vs black king.',
+    'exercise.description.KRRK': 'White king + two rooks vs black king.',
+    'exercise.description.KBBK': 'White king + two bishops vs black king.',
+    'exercise.description.KBNK': 'White king + bishop and knight vs black king.',
+    'exercise.description.KNNK': 'White king + two knights vs black king.',
 
     'exercise.label.KQK': 'King + Queen vs King',
     'exercise.label.KRK': 'King + Rook vs King',
@@ -387,6 +447,7 @@ const TRANSLATIONS = {
     'gameStatus.difficulty': 'Difficulty',
     'gameStatus.forcedMate': 'Forced mate',
     'gameStatus.mode': 'Mode',
+    'gameStatus.trainingMode': 'Game mode',
     'gameStatus.side': 'Side',
     'gameStatus.objective': 'Objective',
     'gameStatus.turn': 'Turn',
@@ -424,8 +485,11 @@ const TRANSLATIONS = {
     'result.loss': 'Defeat',
     'result.exercise': 'Exercise',
     'result.mode': 'Mode',
+    'result.sideMode': 'Attack/defense mode',
+    'result.trainingMode': 'Game mode',
     'result.moves': 'Moves',
     'result.replay': 'Play again',
+    'result.returnPrevious': 'Return to previous move',
     'result.viewBoard': 'View board',
     'result.goHome': 'Go to home',
     'result.winSpecial':
@@ -439,6 +503,8 @@ const TRANSLATIONS = {
 
     'draw.insufficientMaterial': 'Insufficient material',
 
+    'boardActions.cancel': 'Cancel game',
+    'boardActions.undo': 'Undo',
     'boardActions.abort': 'Abort game',
     'boardActions.goHome': 'Go to home',
 
@@ -460,7 +526,8 @@ const TRANSLATIONS = {
     'stats.chartAborted': 'Aborted',
     'stats.tableTitle': 'Comparison table',
     'stats.tableExercise': 'Exercise',
-    'stats.tableMode': 'Mode',
+    'stats.tableMode': 'Attack/defense mode',
+    'stats.tableTrainingMode': 'Game mode',
     'stats.tablePlayed': 'Games',
     'stats.tableWon': 'Won',
     'stats.tableDrawn': 'Drawn',
@@ -524,6 +591,18 @@ export function gameModeKey(mode: GameMode): TranslationKey {
 
 export function gameModeShortKey(mode: GameMode): TranslationKey {
   return `gameMode.short.${mode}` as TranslationKey;
+}
+
+export function trainingModeKey(mode: TrainingMode): TranslationKey {
+  return `trainingMode.${mode}` as TranslationKey;
+}
+
+export function trainingModeShortKey(mode: TrainingMode): TranslationKey {
+  return `trainingMode.short.${mode}` as TranslationKey;
+}
+
+export function exerciseDescriptionKey(exercise: ExerciseType): TranslationKey {
+  return `exercise.description.${exercise}` as TranslationKey;
 }
 
 export function translateDrawReason(
